@@ -59,7 +59,7 @@ func (c *Cache) Keys() []string {
 	var keys []string
 
 	for i := range c.Storage {
-		if c.Storage[i].expirationTime.Before(time.Now()) && !c.Storage[i].willExpired {
+		if c.Storage[i].expirationTime.After(time.Now()) && !c.Storage[i].willExpired {
 			keys = append(keys, c.Storage[i].key)
 		}
 	}

@@ -19,9 +19,9 @@ func NewCache() Cache {
 
 func (c *Cache) Get(key string) (string, bool) {
 
-	for _, item := range c.Storage {
-		if item.key == key && (item.expirationTime.Before(time.Now()) || !item.willExpired) {
-			return item.value, true
+	for i := range c.Storage {
+		if c.Storage[i].key == key && (c.Storage[i].expirationTime.Before(time.Now()) || !c.Storage[i].willExpired) {
+			return c.Storage[i].value, true
 		}
 	}
 
@@ -57,9 +57,9 @@ func (c *Cache) Put(key, value string) {
 func (c *Cache) Keys() []string {
 	var keys []string
 
-	for _, item := range c.Storage {
-		if item.expirationTime.Before(time.Now()) && !item.willExpired {
-			keys = append(keys, item.key)
+	for i := range c.Storage {
+		if c.Storage[i].expirationTime.Before(time.Now()) && !c.Storage[i].willExpired {
+			keys = append(keys, c.Storage[i].key)
 		}
 	}
 

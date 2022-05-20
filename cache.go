@@ -38,16 +38,17 @@ func (c *Cache) Put(key, value string) {
 
 	}
 
-	for i := range c.Storage {
+	if needOverwrite {
+		for i := range c.Storage {
 
-		if c.Storage[i].key == key {
-			c.Storage[i].value = value
-			c.Storage[i].willExpired = false
+			if c.Storage[i].key == key {
+				c.Storage[i].value = value
+				c.Storage[i].willExpired = false
 
+			}
 		}
-	}
 
-	if !needOverwrite {
+	} else {
 		c.Storage = append(c.Storage, Key{key: key, value: value, willExpired: false})
 
 	}

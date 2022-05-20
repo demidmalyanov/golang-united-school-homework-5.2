@@ -57,7 +57,7 @@ func (c *Cache) Keys() []string {
 	var keys []string
 
 	for _, item := range c.storage {
-		if item.expirationTime.Before(time.Now()) && !item.willExpired {
+		if item.expirationTime.Before(time.Now()) && item.willExpired {
 			keys = append(keys, item.key)
 		}
 	}
@@ -67,7 +67,6 @@ func (c *Cache) Keys() []string {
 
 func (c *Cache) PutTill(key, value string, deadline time.Time) {
 
-	time.Sleep(3)
 	needOverwrite := false
 	for _, nonExpKey := range c.Keys() {
 		if nonExpKey == key {

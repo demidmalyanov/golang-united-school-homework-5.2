@@ -20,7 +20,7 @@ func NewCache() Cache {
 func (c *Cache) Get(key string) (string, bool) {
 
 	for i := range c.Storage {
-		if c.Storage[i].key == key && (c.Storage[i].expirationTime.Before(time.Now()) || !c.Storage[i].willExpired) {
+		if c.Storage[i].key == key && (!c.Storage[i].expirationTime.Before(time.Now()) || !c.Storage[i].willExpired) {
 			return c.Storage[i].value, true
 		}
 	}
@@ -59,7 +59,7 @@ func (c *Cache) Keys() []string {
 	var keys []string
 
 	for i := range c.Storage {
-		if c.Storage[i].expirationTime.After(time.Now()) && !c.Storage[i].willExpired {
+		if !c.Storage[i].expirationTime.Before(time.Now()) && !c.Storage[i].willExpired {
 			keys = append(keys, c.Storage[i].key)
 		}
 	}

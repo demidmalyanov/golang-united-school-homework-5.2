@@ -31,8 +31,7 @@ func (c *Cache) Get(key string) (string, bool) {
 func (c *Cache) Put(key, value string) {
 
 	needOverwrite := false
-	rangeM := c.Keys()
-	for _, nonExpKey := range rangeM {
+	for _, nonExpKey := range c.Keys() {
 		if nonExpKey == key {
 			needOverwrite = true
 		}
@@ -78,11 +77,11 @@ func (c *Cache) PutTill(key, value string, deadline time.Time) {
 	}
 
 	if needOverwrite {
-		for _, item := range c.Storage {
-			if item.key == key {
-				item.value = value
-				item.willExpired = true
-				item.expirationTime = deadline
+		for i := range c.Storage {
+			if c.Storage[i].key == key {
+				c.Storage[i].value = value
+				c.Storage[i].willExpired = true
+				c.Storage[i].expirationTime = deadline
 			}
 		}
 

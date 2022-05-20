@@ -21,7 +21,7 @@ func (c *Cache) Get(key string) (string, bool) {
 
 	for _, item := range c.storage {
 		if item.key == key && item.expirationTime.Before(time.Now()) {
-			return item.key, true
+			return item.value, true
 		}
 	}
 

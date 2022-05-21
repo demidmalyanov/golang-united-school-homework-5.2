@@ -98,6 +98,6 @@ func (c *Cache) PutTill(key, value string, deadline time.Time) {
 		}
 
 	} else {
-		c.storage = append(c.storage, Key{key: key, value: value, shouldExpire: false, expTime: deadline})
+		c.storage = append(c.storage, Key{key: key, value: value, shouldExpire: true, expTime: deadline})
 	}
 }

@@ -1,16 +1,18 @@
 package cache
 
-import "time"
-
-type Cache struct {
-	Storage []Key
-}
+import (
+	"time"
+)
 
 type Key struct {
-	key            string
-	value          string
-	expirationTime time.Time
-	willExpired    bool
+	key          string
+	value        string
+	expTime      time.Time
+	shouldExpire bool
+}
+
+type Cache struct {
+	storage []Key
 }
 
 func NewCache() Cache {
@@ -19,10 +21,13 @@ func NewCache() Cache {
 
 func (c *Cache) Get(key string) (string, bool) {
 
-	for i := range c.Storage {
-		if c.Storage[i].key == key && (!c.Storage[i].expirationTime.Before(time.Now()) || !c.Storage[i].willExpired) {
-			return c.Storage[i].value, true
+	for i := range c.storage {
+		if c.storage[i].key == key && !c.storage[i].shouldExpire {
+			return c.storage[i].value, true
+		} else if c.storage[i].key == key && c.storage[i].expTime.After(time.Now()) {
+			return c.storage[i].value, true
 		}
+
 	}
 
 	return "", false
@@ -30,64 +35,69 @@ func (c *Cache) Get(key string) (string, bool) {
 
 func (c *Cache) Put(key, value string) {
 
-	needOverwrite := false
-	for _, nonExpKey := range c.Keys() {
-		if nonExpKey == key {
-			needOverwrite = true
-		}
+	validKeys := c.Keys()
+	needToOverwrite := false
 
+	for _, validKey := range validKeys {
+		if validKey == key {
+			needToOverwrite = true
+			break
+		}
 	}
 
-	if needOverwrite {
-		for i := range c.Storage {
-
-			if c.Storage[i].key == key {
-				c.Storage[i].value = value
-				c.Storage[i].willExpired = false
-
+	if needToOverwrite {
+		for i := range c.storage {
+			if c.storage[i].key == key {
+				c.storage[i].value = value
+				c.storage[i].shouldExpire = false
+				break
 			}
 		}
 
 	} else {
-		c.Storage = append(c.Storage, Key{key: key, value: value, willExpired: false})
-
+		c.storage = append(c.storage, Key{key: key, value: value, shouldExpire: false})
 	}
-
 }
 
 func (c *Cache) Keys() []string {
-	var keys []string
 
-	for i := range c.Storage {
-		if !c.Storage[i].expirationTime.Before(time.Now()) && !c.Storage[i].willExpired {
-			keys = append(keys, c.Storage[i].key)
+	var validKeys []string
+	for i := range c.storage {
+		if !c.storage[i].shouldExpire {
+
+			validKeys = append(validKeys, c.storage[i].key)
+
+		} else if c.storage[i].expTime.After(time.Now()) {
+			validKeys = append(validKeys, c.storage[i].key)
 		}
-	}
 
-	return keys
+	}
+	return validKeys
 }
 
 func (c *Cache) PutTill(key, value string, deadline time.Time) {
 
-	needOverwrite := false
-	for _, nonExpKey := range c.Keys() {
-		if nonExpKey == key {
-			needOverwrite = true
-		}
+	validKeys := c.Keys()
+	needToOverwrite := false
 
+	for _, validKey := range validKeys {
+		if validKey == key {
+			needToOverwrite = true
+			break
+		}
 	}
 
-	if needOverwrite {
-		for i := range c.Storage {
-			if c.Storage[i].key == key {
-				c.Storage[i].value = value
-				c.Storage[i].willExpired = true
-				c.Storage[i].expirationTime = deadline
+	if needToOverwrite {
+		for i := range c.storage {
+			if c.storage[i].key == key {
+				c.storage[i].value = value
+				c.storage[i].shouldExpire = true
+				c.storage[i].expTime = deadline
+				break
 			}
 		}
 
 	} else {
-		c.Storage = append(c.Storage, Key{key: key, value: value, willExpired: true, expirationTime: deadline})
-
+		c.storage = append(c.storage, Key{key: key, value: value, shouldExpire: false, expTime: deadline})
 	}
 }

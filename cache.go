@@ -1,103 +1,88 @@
 package cache
 
 import (
+	"sync"
 	"time"
 )
 
-type Key struct {
-	key          string
+type Item struct {
 	value        string
 	expTime      time.Time
 	shouldExpire bool
 }
 
+// Cache with mutex to protect it from race conditions
 type Cache struct {
-	storage []Key
+	Storage map[string]Item
+	sync.Mutex
 }
 
-func NewCache() Cache {
-	return Cache{}
+//Cache constructor
+func NewCache() *Cache {
+	return &Cache{Storage: map[string]Item{}}
 }
 
 func (c *Cache) Get(key string) (string, bool) {
+	c.Lock()
+	defer c.Unlock()
 
-	for i := range c.storage {
-		if c.storage[i].key == key && !c.storage[i].shouldExpire {
-			return c.storage[i].value, true
-		} else if c.storage[i].key == key && c.storage[i].expTime.After(time.Now()) {
-			return c.storage[i].value, true
-		}
-
+	item, found := c.Storage[key]
+	if !found {
+		return "", false
 	}
 
-	return "", false
+	//Check if it expired
+	if item.shouldExpire && !item.expTime.After(time.Now()){
+		return "",false
+	}
+
+	return item.value, true
 }
 
-func (c *Cache) Put(key, value string) {
+func (c *Cache) Put(key string, value string) {
+	c.Lock()
+	defer c.Unlock()
 
-	validKeys := c.Keys()
-	needToOverwrite := false
-
-	for _, validKey := range validKeys {
-		if validKey == key {
-			needToOverwrite = true
-			break
-		}
-	}
-
-	if needToOverwrite {
-		for i := range c.storage {
-			if c.storage[i].key == key {
-				c.storage[i].value = value
-				c.storage[i].shouldExpire = false
-				break
-			}
-		}
-
+	if _, ok := c.Storage[key]; ok {
+		c.Storage[key] = Item{shouldExpire: false, value: value}
 	} else {
-		c.storage = append(c.storage, Key{key: key, value: value, shouldExpire: false})
+		c.Storage[key] = Item{
+			value:        value,
+			shouldExpire: false,
+		}
 	}
+
 }
 
 func (c *Cache) Keys() []string {
+	c.Lock()
+	defer c.Unlock()
 
-	var validKeys []string
-	for i := range c.storage {
-		if !c.storage[i].shouldExpire {
+	keys := []string{}
+	for key := range c.Storage {
+		if !c.Storage[key].shouldExpire {
 
-			validKeys = append(validKeys, c.storage[i].key)
+			keys = append(keys, key)
 
-		} else if c.storage[i].expTime.After(time.Now()) {
-			validKeys = append(validKeys, c.storage[i].key)
+		} else if c.Storage[key].expTime.After(time.Now()) {
+			keys = append(keys, key)
 		}
-
 	}
-	return validKeys
+	return keys
 }
 
 func (c *Cache) PutTill(key, value string, deadline time.Time) {
+	c.Lock()
+	defer c.Unlock()
 
-	validKeys := c.Keys()
-	needToOverwrite := false
-
-	for _, validKey := range validKeys {
-		if validKey == key {
-			needToOverwrite = true
-			break
-		}
-	}
-
-	if needToOverwrite {
-		for i := range c.storage {
-			if c.storage[i].key == key {
-				c.storage[i].value = value
-				c.storage[i].shouldExpire = true
-				c.storage[i].expTime = deadline
-				break
-			}
-		}
-
+	if _, ok := c.Storage[key]; ok {
+		c.Storage[key] = Item{value: value, shouldExpire: true, expTime: deadline}
 	} else {
-		c.storage = append(c.storage, Key{key: key, value: value, shouldExpire: true, expTime: deadline})
+		c.Storage[key] = Item{
+			value:        value,
+			shouldExpire: true,
+			expTime:      deadline,
+		}
 	}
+
 }
